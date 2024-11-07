@@ -1,88 +1,95 @@
-let recurringTimers = {};
+// Timer IDs to manage timers
+let hourlyTimerId = null;
+let recurringTimerId = null;
 
-// Phát âm thanh thông báo
+// Play notification sound
 function playSound() {
   const audio = new Audio(chrome.runtime.getURL("notification.mp3"));
-  audio.play().catch((error) => console.error("Lỗi khi phát âm thanh:", error));
+  audio.play().catch((error) => console.error("Error playing sound:", error));
 }
 
-// Tạo thông báo
+// Create a notification
 function sendNotification(title, message) {
   chrome.notifications.create(
     {
       type: "basic",
-      iconUrl: "empty.png",
+      iconUrl: "icons/icon128.png",
       title: title,
       message: message,
       priority: 2,
     },
-    (notificationId) =>
-      console.log("Thông báo đã được tạo với ID:", notificationId)
+    (notificationId) => {
+      if (chrome.runtime.lastError) {
+        console.error("Notification error:", chrome.runtime.lastError);
+      } else {
+        console.log("Notification created with ID:", notificationId);
+      }
+    }
   );
 }
 
-// Hàm chuông báo theo giờ
+// Set up hourly alert
 function setupHourlyAlert(message) {
   const now = new Date();
-  let nextAlert = new Date(now.getTime());
-  nextAlert.setMinutes(0, 0, 0); // Thiết lập thời điểm đầu giờ
-  if (nextAlert <= now) {
-    nextAlert.setHours(nextAlert.getHours() + 1);
-  }
+  const nextAlert = new Date();
+  nextAlert.setHours(now.getHours() + 1, 0, 0, 0);
 
   const delay = nextAlert.getTime() - now.getTime();
 
-  setTimeout(() => {
+  hourlyTimerId = setTimeout(() => {
     sendNotification(
       "Thông báo Timer",
       `Đã đến giờ: ${nextAlert.getHours()}h\n${message}`
     );
     playSound();
 
-    // Cập nhật thời gian báo tiếp theo vào storage
-    chrome.storage.sync.set({ nextAlert: nextAlert.getTime() }, () =>
-      console.log("Next alert time đã được cập nhật.")
-    );
-
-    // Thiết lập chuông báo giờ tiếp theo
+    // Set up next hourly alert
     setupHourlyAlert(message);
   }, delay);
 
-  // Cập nhật trạng thái chuông báo giờ tiếp theo
+  // Update next alert time in storage
   chrome.storage.sync.set({ nextAlert: nextAlert.getTime() });
 }
 
-// Hàm chuông báo lặp lại
+// Set up recurring alert
 function setupRecurringAlert(intervalMinutes, message) {
-  const timerId = setInterval(() => {
-    const now = new Date();
+  const now = new Date();
+  const nextAlert = new Date(now.getTime() + intervalMinutes * 60 * 1000);
+
+  recurringTimerId = setInterval(() => {
+    const currentTime = new Date();
     sendNotification(
       "Thông báo Timer",
-      `Đã hết ${intervalMinutes} phút tại ${now.toLocaleTimeString()}\n${message}`
+      `Đã hết ${intervalMinutes} phút tại ${currentTime.toLocaleTimeString()}\n${message}`
     );
     playSound();
 
-    const nextAlert = new Date(now.getTime() + intervalMinutes * 60 * 1000);
-    chrome.storage.sync.set({ nextAlert: nextAlert.getTime() });
+    // Update next alert time in storage
+    const nextAlertTime = new Date(
+      currentTime.getTime() + intervalMinutes * 60 * 1000
+    );
+    chrome.storage.sync.set({ nextAlert: nextAlertTime.getTime() });
   }, intervalMinutes * 60 * 1000);
 
-  recurringTimers[intervalMinutes] = timerId;
-
-  // Cập nhật nextAlert lần đầu tiên ngay khi thiết lập
-  const now = new Date();
-  const nextAlert = new Date(now.getTime() + intervalMinutes * 60 * 1000);
+  // Update next alert time in storage
   chrome.storage.sync.set({ nextAlert: nextAlert.getTime() });
 }
 
-// Hủy bỏ tất cả các timers
+// Clear all timers
 function clearAllTimers() {
-  for (const interval in recurringTimers) {
-    clearInterval(recurringTimers[interval]);
-    console.log(`Đã hủy bỏ timer cho khoảng thời gian: ${interval} phút`);
+  if (hourlyTimerId !== null) {
+    clearTimeout(hourlyTimerId);
+    hourlyTimerId = null;
+    console.log("Hourly timer cleared.");
   }
-  recurringTimers = {};
+  if (recurringTimerId !== null) {
+    clearInterval(recurringTimerId);
+    recurringTimerId = null;
+    console.log("Recurring timer cleared.");
+  }
 }
 
+// Handle incoming messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "start-timer") {
     clearAllTimers();
@@ -91,13 +98,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       setupHourlyAlert(message.message);
       sendResponse({ status: "Chuông báo theo giờ đã được thiết lập." });
     } else if (message.mode === "recurring") {
-      if (![15, 30, 45, 60].includes(message.interval)) {
-        sendResponse({
-          error:
-            "Khoảng thời gian không hợp lệ. Vui lòng chọn 15, 30, 45 hoặc 60 phút.",
-        });
-        return;
-      }
       setupRecurringAlert(message.interval, message.message);
       sendResponse({
         status: `Chuông báo lặp lại mỗi ${message.interval} phút đã được thiết lập.`,
