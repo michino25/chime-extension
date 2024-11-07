@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Timer Notification Extension</title>
+    <script src="tailwindcss.js"></script>
+    <style>
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: #2563eb;
+      }
+    </style>
+  </head>
+
+  <body class="bg-gray-100 p-5 w-[400px]">
+    <div
+      class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-5"
+    >
+      <h2 class="text-lg font-semibold text-gray-800 mb-5">Chuông báo</h2>
+
+      <!-- Tabs -->
+      <div class="mb-4">
+        <ul
+          class="grid grid-cols-2 text-sm font-medium text-center text-gray-500 border-b border-gray-200 gap-2"
+        >
+          <li>
+            <button id="tab-hourly" class="block w-full p-4 rounded-t-lg">
+              Theo giờ
+            </button>
+          </li>
+          <li>
+            <button id="tab-recurring" class="block w-full p-4 rounded-t-lg">
+              Lặp lại
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Hourly Settings -->
+      <div id="hourly-settings" class="mb-4">
+        <label
+          for="hourly-message"
+          class="block mb-2 text-sm font-medium text-gray-900"
+        >
+          Lời nhắn
+        </label>
+        <input
+          type="text"
+          id="hourly-message"
+          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5"
+          placeholder="Nhập lời nhắn"
+        />
+      </div>
+
+      <!-- Recurring Settings -->
+      <div id="recurring-settings" class="hidden mb-4">
+        <label
+          for="recurring-interval"
+          class="block mb-2 text-sm font-medium text-gray-900"
+        >
+          Lặp lại sau
+        </label>
+        <div class="mx-5">
+          <input
+            id="recurring-interval"
+            type="range"
+            min="15"
+            max="60"
+            value="30"
+            step="15"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          />
+        </div>
+        <div class="flex justify-between mt-2">
+          <span class="text-sm text-gray-500">15 phút</span>
+          <span class="text-sm text-gray-500">30 phút</span>
+          <span class="text-sm text-gray-500">45 phút</span>
+          <span class="text-sm text-gray-500">60 phút</span>
+        </div>
+
+        <label
+          for="hourly-message"
+          class="block mt-4 mb-2 text-sm font-medium text-gray-900"
+        >
+          Lời nhắn
+        </label>
+        <input
+          type="text"
+          id="recurring-message"
+          class="bg-gray-50 border border-gray-300 text-gray-900 accent-blue-600 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5"
+          placeholder="Nhập lời nhắn"
+        />
+      </div>
+
+      <!-- Nút Bắt Đầu -->
+      <div class="mt-4">
+        <button
+          id="start-timer"
+          type="button"
+          class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2"
+        >
+          Bắt đầu
+        </button>
+      </div>
+    </div>
+
+    <!-- Trạng Thái -->
+    <div
+      class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-5 mt-4"
+    >
+      <p id="status" class="text-sm text-blue-600"></p>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
