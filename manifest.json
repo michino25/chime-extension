@@ -1,12 +1,12 @@
 {
   "manifest_version": 2,
   "name": "Chime",
-  "version": "0.1.0",
-  "description": "Chuông báo thời gian.",
-  "permissions": ["notifications", "storage"],
+  "version": "0.3.0",
+  "description": "Set custom hourly or recurring alerts with custom messages and sound notifications (can be toggled on/off).",
+  "permissions": ["notifications", "storage", "alarms", "idle"],
   "background": {
     "scripts": ["background.js"],
-    "persistent": true
+    "persistent": false
   },
   "browser_action": {
     "default_popup": "popup.html",

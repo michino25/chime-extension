@@ -19,7 +19,19 @@
     <div
       class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-5"
     >
-      <h2 class="text-lg font-semibold text-gray-800 mb-5">Chuông báo</h2>
+      <!-- Sound Toggle Button -->
+      <div class="mb-5 flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-gray-800">Chuông báo</h2>
+        <button id="sound-toggle" class="focus:outline-none">
+          <img
+            id="sound-toggle-icon"
+            src="/assets/noti.png"
+            alt="Sound On"
+            width="24"
+            height="24"
+          />
+        </button>
+      </div>
 
       <!-- Tabs -->
       <div class="mb-4">
@@ -82,7 +94,7 @@
         </div>
 
         <label
-          for="hourly-message"
+          for="recurring-message"
           class="block mt-4 mb-2 text-sm font-medium text-gray-900"
         >
           Lời nhắn
@@ -95,7 +107,7 @@
         />
       </div>
 
-      <!-- Nút Bắt Đầu -->
+      <!-- Start Button -->
       <div class="mt-4">
         <button
           id="start-timer"
@@ -107,7 +119,7 @@
       </div>
     </div>
 
-    <!-- Trạng Thái -->
+    <!-- Status -->
     <div
       class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-5 mt-4"
     >

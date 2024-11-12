@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Element selectors
   const elements = {
     tabHourly: document.getElementById("tab-hourly"),
     tabRecurring: document.getElementById("tab-recurring"),
@@ -10,12 +9,13 @@ document.addEventListener("DOMContentLoaded", () => {
     hourlyMessageInput: document.getElementById("hourly-message"),
     recurringIntervalInput: document.getElementById("recurring-interval"),
     recurringMessageInput: document.getElementById("recurring-message"),
+    soundToggleButton: document.getElementById("sound-toggle"),
+    soundToggleIcon: document.getElementById("sound-toggle-icon"),
   };
 
   const CLASS_ACTIVE_TAB = ["text-blue-600", "bg-gray-100", "active"];
   const CLASS_INACTIVE_TAB = ["hover:text-gray-600", "hover:bg-gray-50"];
 
-  // Handle tab activation
   function activateTab(selectedTab, otherTab, selectedSettings, otherSettings) {
     selectedTab.classList.add(...CLASS_ACTIVE_TAB);
     selectedTab.classList.remove(...CLASS_INACTIVE_TAB);
@@ -27,7 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
     otherSettings.classList.add("hidden");
   }
 
-  // Activate Hourly Tab
   function activateHourlyTab() {
     activateTab(
       elements.tabHourly,
@@ -37,7 +36,6 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  // Activate Recurring Tab
   function activateRecurringTab() {
     activateTab(
       elements.tabRecurring,
@@ -47,10 +45,9 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  // Load settings from storage
   function loadSettings() {
     chrome.storage.sync.get(
-      ["mode", "interval", "message", "nextAlert"],
+      ["mode", "interval", "message", "soundEnabled"],
       (data) => {
         if (data.mode === "hourly") {
           activateHourlyTab();
@@ -66,16 +63,15 @@ document.addEventListener("DOMContentLoaded", () => {
             elements.recurringMessageInput.value = data.message;
           }
         } else {
-          // Default to hourly mode
           activateHourlyTab();
         }
 
-        updateNextAlertStatus(data.nextAlert);
+        updateNextAlertStatus();
+        updateSoundToggleIcon(data.soundEnabled !== false);
       }
     );
   }
 
-  // Update status message
   function updateStatus(message, isError = false) {
     elements.statusDiv.classList.toggle("text-blue-600", !isError);
     elements.statusDiv.classList.toggle("text-red-500", isError);
@@ -83,24 +79,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!isError) {
       setTimeout(() => {
-        chrome.storage.sync.get("nextAlert", (data) => {
-          updateNextAlertStatus(data.nextAlert);
-        });
-      }, 5000); // Hide message after 5 seconds
+        updateNextAlertStatus();
+      }, 5000);
     }
   }
 
-  // Update next alert status
-  function updateNextAlertStatus(nextAlert) {
-    if (nextAlert) {
-      const nextAlertDate = new Date(nextAlert);
-      elements.statusDiv.textContent = `Chuông báo tiếp theo vào lúc: ${nextAlertDate.toLocaleTimeString()}`;
-    } else {
-      elements.statusDiv.textContent = "";
-    }
+  function updateNextAlertStatus() {
+    chrome.alarms.getAll((alarms) => {
+      if (alarms.length === 0) {
+        elements.statusDiv.textContent = "";
+        return;
+      }
+      const nextAlarm = alarms.reduce((earliest, alarm) =>
+        alarm.scheduledTime < earliest.scheduledTime ? alarm : earliest
+      );
+      const nextAlertDate = new Date(nextAlarm.scheduledTime);
+      elements.statusDiv.textContent = `Next chime at: ${nextAlertDate.toLocaleTimeString()}`;
+    });
   }
 
-  // Handle "Start" button click
   function handleStartButtonClick() {
     const selectedMode = elements.tabHourly.classList.contains("active")
       ? "hourly"
@@ -133,11 +130,26 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Event listeners
+  function updateSoundToggleIcon(soundEnabled) {
+    if (soundEnabled) {
+      elements.soundToggleIcon.src = "/assets/noti.png";
+      elements.soundToggleIcon.alt = "Sound On";
+    } else {
+      elements.soundToggleIcon.src = "/assets/mute.png";
+      elements.soundToggleIcon.alt = "Sound Off";
+    }
+  }
+
+  function handleSoundToggleClick() {
+    chrome.runtime.sendMessage({ action: "toggle-sound" }, (response) => {
+      updateSoundToggleIcon(response.soundEnabled);
+    });
+  }
+
   elements.tabHourly.addEventListener("click", activateHourlyTab);
   elements.tabRecurring.addEventListener("click", activateRecurringTab);
   elements.startButton.addEventListener("click", handleStartButtonClick);
+  elements.soundToggleButton.addEventListener("click", handleSoundToggleClick);
 
-  // Initialize the popup
   loadSettings();
 });

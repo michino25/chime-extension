@@ -1,14 +1,27 @@
-// Timer IDs to manage timers
-let hourlyTimerId = null;
-let recurringTimerId = null;
-
-// Play notification sound
-function playSound() {
-  const audio = new Audio(chrome.runtime.getURL("notification.mp3"));
-  audio.play().catch((error) => console.error("Error playing sound:", error));
+function log(message) {
+  const timestamp = new Date().toLocaleString();
+  console.log(`[${timestamp}] ${message}`);
 }
 
-// Create a notification
+const audio = new Audio(chrome.runtime.getURL("/assets/notification.mp3"));
+
+function playSound() {
+  chrome.storage.sync.get("soundEnabled", (data) => {
+    const soundEnabled = data.soundEnabled !== false;
+    if (soundEnabled) {
+      audio.currentTime = 0;
+      setTimeout(() => {
+        audio
+          .play()
+          .then(() => log("Sound played successfully."))
+          .catch((error) => log(`Error playing sound: ${error}`));
+      }, 100);
+    } else {
+      log("Sound is disabled. Notification sent without sound.");
+    }
+  });
+}
+
 function sendNotification(title, message) {
   chrome.notifications.create(
     {
@@ -20,91 +33,124 @@ function sendNotification(title, message) {
     },
     (notificationId) => {
       if (chrome.runtime.lastError) {
-        console.error("Notification error:", chrome.runtime.lastError);
+        log(`Notification error: ${chrome.runtime.lastError}`);
       } else {
-        console.log("Notification created with ID:", notificationId);
+        log(`Notification created with ID: ${notificationId}`);
       }
     }
   );
 }
 
-// Set up hourly alert
 function setupHourlyAlert(message) {
   const now = new Date();
   const nextAlert = new Date();
   nextAlert.setHours(now.getHours() + 1, 0, 0, 0);
 
-  const delay = nextAlert.getTime() - now.getTime();
+  const when = nextAlert.getTime();
 
-  hourlyTimerId = setTimeout(() => {
-    sendNotification(
-      "Thông báo Timer",
-      `Đã đến giờ: ${nextAlert.getHours()}h\n${message}`
-    );
-    playSound();
+  chrome.alarms.create("hourlyAlarm", {
+    when: when,
+    periodInMinutes: 60,
+  });
 
-    // Set up next hourly alert
-    setupHourlyAlert(message);
-  }, delay);
-
-  // Update next alert time in storage
-  chrome.storage.sync.set({ nextAlert: nextAlert.getTime() });
+  chrome.storage.sync.set({ hourlyMessage: message });
+  log("Hourly alarm has been set.");
 }
 
-// Set up recurring alert
 function setupRecurringAlert(intervalMinutes, message) {
-  const now = new Date();
-  const nextAlert = new Date(now.getTime() + intervalMinutes * 60 * 1000);
+  chrome.alarms.create("recurringAlarm", {
+    delayInMinutes: intervalMinutes,
+    periodInMinutes: intervalMinutes,
+  });
 
-  recurringTimerId = setInterval(() => {
-    const currentTime = new Date();
-    sendNotification(
-      "Thông báo Timer",
-      `Đã hết ${intervalMinutes} phút tại ${currentTime.toLocaleTimeString()}\n${message}`
-    );
-    playSound();
-
-    // Update next alert time in storage
-    const nextAlertTime = new Date(
-      currentTime.getTime() + intervalMinutes * 60 * 1000
-    );
-    chrome.storage.sync.set({ nextAlert: nextAlertTime.getTime() });
-  }, intervalMinutes * 60 * 1000);
-
-  // Update next alert time in storage
-  chrome.storage.sync.set({ nextAlert: nextAlert.getTime() });
+  chrome.storage.sync.set({
+    recurringMessage: message,
+    interval: intervalMinutes,
+  });
+  log(`Recurring alarm every ${intervalMinutes} minutes has been set.`);
 }
 
-// Clear all timers
-function clearAllTimers() {
-  if (hourlyTimerId !== null) {
-    clearTimeout(hourlyTimerId);
-    hourlyTimerId = null;
-    console.log("Hourly timer cleared.");
-  }
-  if (recurringTimerId !== null) {
-    clearInterval(recurringTimerId);
-    recurringTimerId = null;
-    console.log("Recurring timer cleared.");
-  }
+function clearAllAlarms() {
+  chrome.alarms.clearAll(() => {
+    log("All alarms have been cleared.");
+  });
 }
 
-// Handle incoming messages
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "hourlyAlarm") {
+    chrome.storage.sync.get("hourlyMessage", (data) => {
+      const message = data.hourlyMessage || "";
+      const now = new Date();
+      sendNotification(
+        "Chime Extension",
+        `It's now: ${now.getHours()}h\n${message}`
+      );
+      log(`Hourly notification with message: ${message}`);
+      playSound();
+    });
+  } else if (alarm.name === "recurringAlarm") {
+    chrome.storage.sync.get(["recurringMessage", "interval"], (data) => {
+      const message = data.recurringMessage || "";
+      const intervalMinutes = data.interval || 0;
+      const now = new Date();
+      sendNotification(
+        "Chime Extension",
+        `${intervalMinutes} minutes have passed at ${now.toLocaleTimeString()}\n${message}`
+      );
+      log(
+        `Recurring notification every ${intervalMinutes} minutes with message: ${message}`
+      );
+      playSound();
+    });
+  }
+});
+
+chrome.idle.onStateChanged.addListener((state) => {
+  if (state === "active") {
+    log("Computer has become active.");
+    chrome.storage.sync.get(
+      ["mode", "hourlyMessage", "recurringMessage", "interval"],
+      (data) => {
+        clearAllAlarms();
+
+        if (data.mode === "hourly") {
+          setupHourlyAlert(data.hourlyMessage || "");
+          log("Hourly alarm has been restarted.");
+        } else if (data.mode === "recurring") {
+          setupRecurringAlert(data.interval || 30, data.recurringMessage || "");
+          log("Recurring alarm has been restarted.");
+        }
+      }
+    );
+  }
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "start-timer") {
-    clearAllTimers();
+    clearAllAlarms();
 
     if (message.mode === "hourly") {
       setupHourlyAlert(message.message);
-      sendResponse({ status: "Chuông báo theo giờ đã được thiết lập." });
+      chrome.storage.sync.set({ mode: "hourly" });
+      sendResponse({ status: "Hourly chime has been set." });
     } else if (message.mode === "recurring") {
       setupRecurringAlert(message.interval, message.message);
+      chrome.storage.sync.set({ mode: "recurring" });
       sendResponse({
-        status: `Chuông báo lặp lại mỗi ${message.interval} phút đã được thiết lập.`,
+        status: `Recurring chime every ${message.interval} minutes has been set.`,
       });
     } else {
-      sendResponse({ error: "Chế độ không hợp lệ." });
+      sendResponse({ error: "Invalid mode." });
     }
+  } else if (message.action === "toggle-sound") {
+    chrome.storage.sync.get("soundEnabled", (data) => {
+      const soundEnabled = data.soundEnabled !== false;
+      chrome.storage.sync.set({ soundEnabled: !soundEnabled }, () => {
+        log(`Sound has been ${!soundEnabled ? "enabled" : "disabled"}.`);
+        sendResponse({ soundEnabled: !soundEnabled });
+      });
+    });
+    return true;
   }
   return true;
 });
