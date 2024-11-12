@@ -83,7 +83,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
       const now = new Date();
       sendNotification(
         "Chime Extension",
-        `It's now: ${now.getHours()}h\n${message}`
+        `Bây giờ là: ${now.getHours()} giờ.\n${message}`
       );
       log(`Hourly notification with message: ${message}`);
       playSound();
@@ -92,10 +92,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     chrome.storage.sync.get(["recurringMessage", "interval"], (data) => {
       const message = data.recurringMessage || "";
       const intervalMinutes = data.interval || 0;
-      const now = new Date();
       sendNotification(
         "Chime Extension",
-        `${intervalMinutes} minutes have passed at ${now.toLocaleTimeString()}\n${message}`
+        `${intervalMinutes} phút đã trôi qua.\n${message}`
       );
       log(
         `Recurring notification every ${intervalMinutes} minutes with message: ${message}`
@@ -132,12 +131,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.mode === "hourly") {
       setupHourlyAlert(message.message);
       chrome.storage.sync.set({ mode: "hourly" });
-      sendResponse({ status: "Hourly chime has been set." });
+      sendResponse({ status: "Chuông báo theo giờ đã được đặt." });
     } else if (message.mode === "recurring") {
       setupRecurringAlert(message.interval, message.message);
       chrome.storage.sync.set({ mode: "recurring" });
       sendResponse({
-        status: `Recurring chime every ${message.interval} minutes has been set.`,
+        status: `Chuông báo lặp lại mỗi ${message.interval} phút đã được đặt.`,
       });
     } else {
       sendResponse({ error: "Invalid mode." });

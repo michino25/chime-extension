@@ -8,6 +8,11 @@
 - **Recurring Reminders**: Receive notifications at intervals of 15, 30, 45, or 60 minutes.
 - **Sound Alerts**: Each notification includes a calming, low-toned sound alert to avoid startles and provide a subtle reminder.
 
+<div style="display: flex; flex-wrap: wrap; justify-content: space-around; align-items: flex-start;">
+  <img src="assets/intro0.png" alt="intro 1" style="max-width: 100%; width: 350px; object-fit: contain;">
+  <img src="assets/intro1.png" alt="intro 2" style="max-width: 100%; width: 350px; object-fit: contain;">
+</div>
+
 ## Installation
 
 1. **Clone the repository**:

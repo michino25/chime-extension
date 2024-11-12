@@ -87,14 +87,15 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateNextAlertStatus() {
     chrome.alarms.getAll((alarms) => {
       if (alarms.length === 0) {
-        elements.statusDiv.textContent = "";
+        elements.statusDiv.textContent =
+          "Mẹo hữu ích: Nội dung lời nhắn sẽ hiển thị trong thông báo khi chuông reo!";
         return;
       }
       const nextAlarm = alarms.reduce((earliest, alarm) =>
         alarm.scheduledTime < earliest.scheduledTime ? alarm : earliest
       );
       const nextAlertDate = new Date(nextAlarm.scheduledTime);
-      elements.statusDiv.textContent = `Next chime at: ${nextAlertDate.toLocaleTimeString()}`;
+      elements.statusDiv.textContent = `Chuông báo tiếp theo: ${nextAlertDate.toLocaleTimeString()}`;
     });
   }
 
