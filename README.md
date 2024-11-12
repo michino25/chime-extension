@@ -8,10 +8,10 @@
 - **Recurring Reminders**: Receive notifications at intervals of 15, 30, 45, or 60 minutes.
 - **Sound Alerts**: Each notification includes a calming, low-toned sound alert to avoid startles and provide a subtle reminder.
 
-<table border="0" style="border-collapse: collapse;">
+<table>
   <tr>
-    <td><img src="assets/intro0.png" alt="Ảnh 1" style="width: 350px; object-fit: contain;"></td>
-    <td><img src="assets/intro1.png" alt="Ảnh 2" style="width: 350px; object-fit: contain;"></td>
+    <td style="border: none; vertical-align: top;"><img src="assets/intro0.png" alt="Ảnh 1" style="width: 350px; object-fit: contain;"></td>
+    <td style="border: none; vertical-align: top;"><img src="assets/intro1.png" alt="Ảnh 2" style="width: 350px; object-fit: contain;"></td>
   </tr>
 </table>
 
